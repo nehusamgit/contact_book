@@ -7,7 +7,23 @@ function App() {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [editingId, setEditingId] = useState(null); 
-  const [searchTerm, setSearchTerm]=useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  // Login States
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState(''); 
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    if (username === 'user' && password === '1234') {
+      setIsLoggedIn(true);
+      setError('');
+    } else {
+      setError('Username or password is invalid ');
+    }
+  };
 
   const API_URL = "http://127.0.0.1:8000/api/contacts/";
 
@@ -23,21 +39,22 @@ function App() {
   };
 
   useEffect(() => {
-    fetchContacts();
-  }, []);
+    if (isLoggedIn) {
+      fetchContacts(); 
+    }
+  }, [isLoggedIn]);
 
   // 2. CREATE & UPDATE 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!name || !phone) {
-      alert("please enter name and  phone number");
+      alert("please enter name and phone number");
       return;
     }
 
-    if (phone.length!=10)
-    {
+    if (phone.length !== 10) {
       alert("phone no must be of 10 digits");
-      return
+      return;
     }
 
     try {
@@ -50,7 +67,6 @@ function App() {
         await axios.post(API_URL, { name, phone, email });
       }
 
-      
       setName("");
       setPhone("");
       setEmail("");
@@ -80,13 +96,66 @@ function App() {
     }
   };
 
+  if (!isLoggedIn) {
+    return (
+      <div className="container d-flex justify-content-center align-items-center" style={{ minHeight: "100vh" }}>
+        <div className="card shadow border-0 p-4" style={{ width: "380px" }}>
+          <div className="card-body">
+            <h3 className="text-center mb-4 fw-bold text-primary">Contact Book Login</h3>
+            <form onSubmit={handleLogin}>
+              <div className="mb-3">
+                <label className="form-label fw-semibold">Username</label>
+                <input 
+                  type="text" 
+                  className="form-control" 
+                  value={username} 
+                  onChange={(e) => setUsername(e.target.value)} 
+                  placeholder="Enter username" 
+                  required 
+                />
+              </div>
+              <div className="mb-3">
+                <label className="form-label fw-semibold">Password</label>
+                <input 
+                  type="password" 
+                  className="form-control" 
+                  value={password} 
+                  onChange={(e) => setPassword(e.target.value)} 
+                  placeholder="Enter password" 
+                  required 
+                />
+              </div>
+              {error && <div className="alert alert-danger py-2 text-center text-sm">{error}</div>}
+              <button type="submit" className="btn btn-primary w-100 fw-bold mt-2">Login</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+
   return (
     <div className="container mt-5">
-      <h2 className="text-center mb-4 text-primary fw-bold">📞 Contact Book Application(Django + React CRUD)</h2>
+      
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h2 className="text-primary fw-bold mb-0">📞 Contact Book Application</h2>
+        <button className="btn btn-outline-danger fw-bold" onClick={() => { setIsLoggedIn(false); setUsername(''); setPassword(''); }}>
+          Logout
+        </button>
+      </div>
 
       <div className="row">
         <div className="col-md-4 mb-4">
-          <input className="form-label fw-semibold" type="text" placeholder="Search contacts...." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}></input>
+          <div className="mb-3">
+            <input 
+              className="form-control" 
+              type="text" 
+              placeholder="Search contacts...." 
+              value={searchTerm} 
+              onChange={(e) => setSearchTerm(e.target.value)} 
+            />
+          </div>
           <div className="card shadow-sm">
             <div className={`card-header text-white ${editingId ? "bg-warning" : "bg-success"}`}>
               <h5 className="card-title mb-0">{editingId ? "Edit Contact" : " Add New Contact"}</h5>
@@ -118,7 +187,6 @@ function App() {
           </div>
         </div>
 
-      
         <div className="col-md-8">
           <div className="card shadow-sm">
             <div className="card-header bg-dark text-white">
@@ -136,50 +204,27 @@ function App() {
                     </tr>
                   </thead>
                   <tbody>
-  {contacts.filter((contact) => {
-    const nameMatch = contact.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const phoneMatch = contact.phone.toString().includes(searchTerm);
-    return nameMatch || phoneMatch;
-  }).length === 0 ? (
-   
-    <tr>
-      <td colSpan="4" className="text-center py-4 text-muted">
-        No contacts found currently!
-      </td>
-    </tr>
-  ) : (
-    contacts
-      .filter((contact) => {
-        const nameMatch = contact.name.toLowerCase().includes(searchTerm.toLowerCase());
-        const phoneMatch = contact.phone.toString().includes(searchTerm);
-        return nameMatch || phoneMatch;
-      })
-      .map((contact) => (
-        <tr key={contact.id}>
-          <td className="fw-bold text-secondary">{contact.name}</td>
-          <td>{contact.phone}</td>
-          <td>
-            {contact.email || <span className="text-muted small">N/A</span>}
-          </td>
-          <td className="text-center">
-            <button 
-              className="btn btn-sm btn-outline-warning me-2" 
-              onClick={() => handleEdit(contact)}
-            >
-              Edit
-            </button>
-            <button 
-              className="btn btn-sm btn-outline-danger" 
-              onClick={() => handleDelete(contact.id)}
-            >
-              Delete
-            </button>
-          </td>
-        </tr>
-      ))
-  )}
-</tbody>
-
+                    {contacts
+                      .filter((val) => {
+                        if (searchTerm === "") {
+                          return val;
+                        } else if (val.name.toLowerCase().includes(searchTerm.toLowerCase())) {
+                          return val;
+                        }
+                        return null;
+                      })
+                      .map((contact) => (
+                        <tr key={contact.id}>
+                          <td>{contact.name}</td>
+                          <td>{contact.phone}</td>
+                          <td>{contact.email || "-"}</td>
+                          <td className="text-center">
+                            <button className="btn btn-sm btn-outline-warning me-2" onClick={() => handleEdit(contact)}>Edit</button>
+                            <button className="btn btn-sm btn-outline-danger" onClick={() => handleDelete(contact.id)}>Delete</button>
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
                 </table>
               </div>
             </div>
